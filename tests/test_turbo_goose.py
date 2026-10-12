@@ -3,6 +3,8 @@ import unittest
 
 from turbo_goose import (
     TurboGoose,
+    CrazyVehicleError,
+    TurboGooseError,
     GooseNoEnergy,
     GooseCannotTravelThere,
 )
@@ -20,6 +22,10 @@ class TestTurboGooseConstructor(unittest.TestCase):
         self.assertEqual(goose.position_km, 0.0)
         self.assertFalse(goose.is_flying)
 
+    def test_default_energy_is_100(self):
+        goose = TurboGoose("Готурбо", 12, 1.8, 60)
+        self.assertEqual(goose.energy, 100.0)
+
     def test_empty_name_is_invalid(self):
         with self.assertRaises(ValueError):
             TurboGoose("", 12, 1.8, 60)
@@ -32,13 +38,25 @@ class TestTurboGooseConstructor(unittest.TestCase):
         with self.assertRaises(ValueError):
             TurboGoose("Готурбо", 0, 1.8, 60)
 
+    def test_negative_mass_is_invalid(self):
+        with self.assertRaises(ValueError):
+            TurboGoose("Готурбо", -1, 1.8, 60)
+
     def test_non_positive_wing_span_is_invalid(self):
         with self.assertRaises(ValueError):
             TurboGoose("Готурбо", 12, 0, 60)
 
+    def test_negative_wing_span_is_invalid(self):
+        with self.assertRaises(ValueError):
+            TurboGoose("Готурбо", 12, -1, 60)
+
     def test_non_positive_speed_is_invalid(self):
         with self.assertRaises(ValueError):
             TurboGoose("Готурбо", 12, 1.8, 0)
+
+    def test_negative_speed_is_invalid(self):
+        with self.assertRaises(ValueError):
+            TurboGoose("Готурбо", 12, 1.8, -1)
 
     def test_energy_boundaries_are_valid(self):
         goose_empty = TurboGoose("Гусь-1", 12, 1.8, 60, 0)
@@ -70,6 +88,14 @@ class TestTurboGooseMovement(unittest.TestCase):
     def test_zero_distance_is_invalid(self):
         with self.assertRaises(ValueError):
             self.goose.move(0, "air")
+
+        self.assertEqual(self.goose.position_km, 0.0)
+        self.assertEqual(self.goose.energy, 100)
+        self.assertFalse(self.goose.is_flying)
+
+    def test_negative_distance_is_invalid(self):
+        with self.assertRaises(ValueError):
+            self.goose.move(-1, "air")
 
         self.assertEqual(self.goose.position_km, 0.0)
         self.assertEqual(self.goose.energy, 100)
@@ -110,6 +136,26 @@ class TestTurboGooseMovement(unittest.TestCase):
         self.assertEqual(goose.energy, 1.9)
         self.assertFalse(goose.is_flying)
 
+    def test_no_energy_exception_message(self):
+        goose = TurboGoose("Готурбо", 12, 1.8, 60, 0)
+
+        with self.assertRaises(GooseNoEnergy) as context:
+            goose.move(1, "air")
+
+        self.assertEqual(
+            str(context.exception),
+            "Готурбо вымотался: сначала покорми гуся!",
+        )
+
+    def test_unsupported_medium_exception_message(self):
+        with self.assertRaises(GooseCannotTravelThere) as context:
+            self.goose.move(1, "ground")
+
+        self.assertEqual(
+            str(context.exception),
+            "Готурбо умеет летать, а не ползать.",
+        )
+
 
 class TestTurboGooseObstacles(unittest.TestCase):
     def test_building_requires_flight_and_energy(self):
@@ -120,6 +166,12 @@ class TestTurboGooseObstacles(unittest.TestCase):
 
     def test_grounded_goose_cannot_overcome_building(self):
         goose = TurboGoose("Готурбо", 12, 1.8, 60, 100)
+
+        self.assertFalse(goose.can_overcome("building"))
+
+    def test_building_requires_at_least_10_energy(self):
+        goose = TurboGoose("Готурбо", 12, 1.8, 60, 10)
+        goose.move(5, "air")
 
         self.assertFalse(goose.can_overcome("building"))
 
@@ -140,6 +192,7 @@ class TestTurboGooseObstacles(unittest.TestCase):
 
     def test_power_line_cannot_be_overcome(self):
         goose = TurboGoose("Готурбо", 12, 1.8, 60, 100)
+        goose.move(1, "air")
 
         self.assertFalse(goose.can_overcome("power_line"))
 
@@ -167,11 +220,29 @@ class TestTurboGooseEnergy(unittest.TestCase):
         with self.assertRaises(GooseCannotTravelThere):
             goose.calculate_energy(1, "water")
 
+        self.assertEqual(goose.energy, 80)
+        self.assertEqual(goose.position_km, 0.0)
+        self.assertFalse(goose.is_flying)
+
     def test_calculate_energy_rejects_zero_distance(self):
         goose = TurboGoose("Готурбо", 12, 1.8, 60, 80)
 
         with self.assertRaises(ValueError):
             goose.calculate_energy(0, "air")
+
+        self.assertEqual(goose.energy, 80)
+        self.assertEqual(goose.position_km, 0.0)
+        self.assertFalse(goose.is_flying)
+
+    def test_calculate_energy_rejects_negative_distance(self):
+        goose = TurboGoose("Готурбо", 12, 1.8, 60, 80)
+
+        with self.assertRaises(ValueError):
+            goose.calculate_energy(-1, "air")
+
+        self.assertEqual(goose.energy, 80)
+        self.assertEqual(goose.position_km, 0.0)
+        self.assertFalse(goose.is_flying)
 
     def test_refuel_caps_energy_at_100(self):
         goose = TurboGoose("Готурбо", 12, 1.8, 60, 90)
@@ -184,6 +255,14 @@ class TestTurboGooseEnergy(unittest.TestCase):
 
         with self.assertRaises(ValueError):
             goose.refuel(0)
+
+        self.assertEqual(goose.energy, 50)
+
+    def test_refuel_rejects_negative_amount(self):
+        goose = TurboGoose("Готурбо", 12, 1.8, 60, 50)
+
+        with self.assertRaises(ValueError):
+            goose.refuel(-1)
 
         self.assertEqual(goose.energy, 50)
 
@@ -240,6 +319,32 @@ class TestTurboGooseLandingAndStatus(unittest.TestCase):
 
         self.assertEqual(goose.energy, 80)
         self.assertEqual(goose.name, "Готурбо")
+
+
+class TestTurboGoosePublicAttributes(unittest.TestCase):
+    def test_public_attributes_are_read_only(self):
+        goose = TurboGoose("Готурбо", 12, 1.8, 60)
+        attributes = {
+            "name": "Другой гусь",
+            "mass_kg": 20,
+            "wing_span_m": 2.0,
+            "max_speed_kmh": 80,
+            "energy": 50,
+            "position_km": 10,
+            "is_flying": True,
+        }
+
+        for attribute, value in attributes.items():
+            with self.subTest(attribute=attribute):
+                with self.assertRaises(AttributeError):
+                    setattr(goose, attribute, value)
+
+
+class TestTurboGooseExceptionHierarchy(unittest.TestCase):
+    def test_exception_inheritance(self):
+        self.assertTrue(issubclass(TurboGooseError, CrazyVehicleError))
+        self.assertTrue(issubclass(GooseNoEnergy, TurboGooseError))
+        self.assertTrue(issubclass(GooseCannotTravelThere, TurboGooseError))
 
 
 if __name__ == "__main__":
