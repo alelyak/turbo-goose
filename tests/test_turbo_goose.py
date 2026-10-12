@@ -169,10 +169,11 @@ class TestTurboGooseObstacles(unittest.TestCase):
 
         self.assertFalse(goose.can_overcome("building"))
 
-    def test_building_requires_at_least_10_energy(self):
-        goose = TurboGoose("Готурбо", 12, 1.8, 60, 10)
-        goose.move(5, "air")
-
+    def test_building_fails_when_energy_below_10(self): 
+        goose = TurboGoose("Готурбо", 12, 1.8, 60, 9) 
+        goose.move(1, "air") 
+        
+        self.assertEqual(goose.energy, 7) 
         self.assertFalse(goose.can_overcome("building"))
 
     def test_storm_requires_wide_enough_wings(self):
