@@ -291,17 +291,30 @@ def get_status(self) -> dict:
 
 #### Сценарий 7. Линия электропередачи — не для гусей
 
-**Given:** аэрогусь имеет `energy=100`, `wing_span_m=3.0` и находится в полёте.
+**Given:** создан аэрогусь с `energy=100`, `wing_span_m=3.0`. После создания гусь находится на земле: `is_flying == False`, `position_km == 0`.
 
-**When:** вызывается `can_overcome("power_line")`.
+**When:** вызывается `move(1, "air")`.
 
-**Then:** результат `False`.
+**Then:**
 
-**And:** `energy`, `position_km` и `is_flying` не изменяются.
+* `energy == 98`;
+* `position_km == 1`;
+* `is_flying is True`.
+
+**When:** сохраняется текущее состояние и вызывается `can_overcome("power_line")`.
+
+**Then:**
+
+* метод возвращает `False`;
+* `energy`, `position_km` и `is_flying` не изменяются в результате проверки препятствия.
 
 **When:** вызывается `move(1, "ground")`.
 
-**Then:** выбрасывается `GooseCannotTravelThere`; состояние не меняется.
+**Then:**
+
+* выбрасывается `GooseCannotTravelThere`;
+* состояние гуся не изменяется.
+
 
 ## 5. Граничные случаи
 
