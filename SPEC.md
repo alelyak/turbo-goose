@@ -109,6 +109,7 @@ def move(self, distance_km: float, medium: str = "air") -> float:
 4. Если `medium != "air"`, метод выбрасывает `GooseCannotTravelThere`; состояние не изменяется.
 5. Если `distance_km <= 0`, метод выбрасывает `ValueError`; состояние не изменяется.
 6. При успешном движении время рассчитывается по максимальной скорости; отдельные погодные эффекты на скорость не влияют.
+7. Проверки выполняются в следующем порядке: сначала проверяется distance_km, затем medium. Если distance_km <= 0, метод выбрасывает ValueError, даже если значение medium также недопустимо.
 
 #### 3.4.2. `can_overcome`
 
@@ -146,7 +147,9 @@ def calculate_energy(self, distance_km: float, medium: str = "air") -> float:
 - `ValueError` — если `distance_km <= 0`;
 - `GooseCannotTravelThere` — если `medium != "air"`.
 
-**Правила:** метод не меняет ни один атрибут объекта и не проверяет, хватит ли текущей энергии для движения.
+**Правила:** 
+1. метод не меняет ни один атрибут объекта и не проверяет, хватит ли текущей энергии для движения.
+2. проверки выполняются в следующем порядке: сначала проверяется distance_km, затем medium. Если distance_km <= 0, метод выбрасывает ValueError, даже если значение medium также недопустимо.
 
 #### 3.4.4. `refuel`
 
@@ -288,17 +291,30 @@ def get_status(self) -> dict:
 
 #### Сценарий 7. Линия электропередачи — не для гусей
 
-**Given:** аэрогусь имеет `energy=100`, `wing_span_m=3.0` и находится в полёте.
+**Given:** создан аэрогусь с `energy=100`, `wing_span_m=3.0`. После создания гусь находится на земле: `is_flying == False`, `position_km == 0`.
 
-**When:** вызывается `can_overcome("power_line")`.
+**When:** вызывается `move(1, "air")`.
 
-**Then:** результат `False`.
+**Then:**
 
-**And:** `energy`, `position_km` и `is_flying` не изменяются.
+* `energy == 98`;
+* `position_km == 1`;
+* `is_flying is True`.
+
+**When:** сохраняется текущее состояние и вызывается `can_overcome("power_line")`.
+
+**Then:**
+
+* метод возвращает `False`;
+* `energy`, `position_km` и `is_flying` не изменяются в результате проверки препятствия.
 
 **When:** вызывается `move(1, "ground")`.
 
-**Then:** выбрасывается `GooseCannotTravelThere`; состояние не меняется.
+**Then:**
+
+* выбрасывается `GooseCannotTravelThere`;
+* состояние гуся не изменяется.
+
 
 ## 5. Граничные случаи
 
