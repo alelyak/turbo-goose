@@ -24,7 +24,6 @@ class TestTurboGooseConstructor(unittest.TestCase):
 
     def test_default_energy_is_100(self):
         goose = TurboGoose("Готурбо", 12, 1.8, 60)
-
         self.assertEqual(goose.energy, 100.0)
 
     def test_empty_name_is_invalid(self):
@@ -157,6 +156,14 @@ class TestTurboGooseMovement(unittest.TestCase):
 
         with self.assertRaises(ValueError):
             self.goose.move(0, "ground")
+
+        self.assertEqual(self.get_state(), state_before)
+
+    def test_negative_distance_takes_priority_over_invalid_medium(self):
+        state_before = self.get_state()
+
+        with self.assertRaises(ValueError):
+            self.goose.move(-1, "ground")
 
         self.assertEqual(self.get_state(), state_before)
 
@@ -320,6 +327,15 @@ class TestTurboGooseEnergy(unittest.TestCase):
 
         with self.assertRaises(ValueError):
             goose.calculate_energy(-1, "water")
+
+        self.assertEqual(self.get_state(goose), state_before)
+
+    def test_zero_distance_takes_priority_over_invalid_medium(self):
+        goose = TurboGoose("Готурбо", 12, 1.8, 60, 80)
+        state_before = self.get_state(goose)
+
+        with self.assertRaises(ValueError):
+            goose.calculate_energy(0, "water")
 
         self.assertEqual(self.get_state(goose), state_before)
 
