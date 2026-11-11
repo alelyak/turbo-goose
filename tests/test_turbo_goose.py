@@ -1,4 +1,3 @@
-```python
 import unittest
 
 from turbo_goose import (
@@ -450,4 +449,3 @@ class TestTurboGooseExceptionHierarchy(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
-```
